@@ -1,0 +1,304 @@
+---
+title: "DataExploration"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(readr)
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+```
+
+
+```{r echo=FALSE}
+data18 <- read.csv("data18responses.csv")
+data17 <- read.csv("data17responses.csv")
+data16 <- read_csv("data16.csv")
+data15 <- read_csv("data15.csv", skip = 1)
+data14 <- read_csv("2014StackOverflowSurveyResponses.csv")
+data14 <- data14[-1,]
+```
+
+
+Type of Responses 
+```{r echo=FALSE}
+males18 <- data18$Gender
+males17 <- data17$Gender
+males16 <- data16$gender
+males15 <- data15$Gender
+males14 <- data14$`What is your gender?`
+
+unique(males18)
+unique(males17)
+unique(factor(males16))
+unique(factor(males15))
+unique(factor(males14))
+```
+
+```{r echo=FALSE}
+# RECODING
+temp <- as.character(males18)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("gender",temp) ] <- 0
+males18 <- as.numeric(temp)
+
+temp <- as.character(males17)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("ender",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+males17 <- as.numeric(temp)
+
+temp <- as.character(males16)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+# Make prefer not to disclose as NA
+temp[ grep("Prefer not to disclose",temp) ] <- NA
+males16 <- as.numeric(temp)
+
+temp <- as.character(males15)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+# Make prefer not to disclose as NA
+temp[ grep("Prefer not to disclose",temp) ] <- NA
+males15 <- as.numeric(temp)
+
+temp <- as.character(males14)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+# Make prefer not to disclose as NA
+temp[ grep("Prefer not to disclose",temp) ] <- NA
+males14 <- as.numeric(temp)
+
+rm(temp)
+```
+
+```{r echo=FALSE}
+as.numeric(summary(is.na(males18))[3]) / length(males18)
+as.numeric(summary(is.na(males17))[3]) / length(males17)
+as.numeric(summary(is.na(males16))[3]) / length(males16)
+as.numeric(summary(is.na(males15))[3]) / length(males15)
+as.numeric(summary(is.na(males14))[3]) / length(males14)
+```
+
+```{r echo=FALSE}
+# COUNTRIES (INDIVIDUALS)
+as.numeric(summary(is.na(data18$Country))[3]) / nrow(data18)
+# as.numeric(summary(is.na(data17$Country))[3]) / length(males17) no NA in 2017
+as.numeric(summary(is.na(data16$country))[3]) / nrow(data16)
+# as.numeric(summary(is.na(data15$Country))[3]) / nrow(data15) no NA in 2015
+# as.numeric(summary(is.na(data14$`What Country do you live in?`))[3]) / nrow(data14) no NA in 2014
+```
+
+For Country, it appears that we can continue with complete cases. 
+The missingness is a very small fraction of the entire dataset for 2018 and 2016.
+```{r echo=FALSE}
+# See if NA is consistent for certain respondents for Country and Gender
+# everyone who didn't input Country also didn't input Gender. 
+missCountry18 <- which(is.na(data18$Country))
+length(data18$Gender[missCountry18])
+# 412 missing countries
+
+# Unfortunately, those that are missing country are a 
+# Mixture of Males, Females, NAs, Other, Prefer not to disclose
+missCountry16 <- which(is.na(data16$country))
+length(data16$gender[missCountry16])
+# 502 missing countries
+```
+
+```{r echo=FALSE}
+# Compare change in proportions for gender without the respondents who don't have country specified
+
+print('Before removal of country NA respondents')
+summary(factor(males18))/length(males18)
+summary(factor(males17))/length(males17)
+summary(factor(males16))/length(males16)
+summary(factor(males15))/length(males15)
+summary(factor(males14))/length(males14)
+
+
+print('After removing NAs entirely in Males variables')
+summary(factor(males18))[-3]/as.numeric(length(males18)-summary(factor(males18))[3])
+summary(factor(males17))[-3]/as.numeric(length(males17)-summary(factor(males17))[3])
+summary(factor(males16))[-3]/as.numeric(length(males16)-summary(factor(males16))[3])
+summary(factor(males15))[-3]/as.numeric(length(males15)-summary(factor(males15))[3])
+summary(factor(males14))[-3]/as.numeric(length(males14)-summary(factor(males14))[3])
+
+print('After removing NAs entirely in Country variables')
+summary(factor(males18[-missCountry18]))/length(males18[-missCountry18])
+summary(factor(males17))/length(males17)
+summary(factor(males16[-missCountry16]))/length(males16[-missCountry16])
+summary(factor(males15))/length(males15)
+summary(factor(males14))/length(males14)
+
+print('After removing all NAs for Country & Males Variables')
+summary(factor(males18[-missCountry18]))[-3]/as.numeric(length(males18[-missCountry18])-summary(factor(males18[-missCountry18]))[3])
+summary(factor(males17))[-3]/as.numeric(length(males17)-summary(factor(males17))[3])
+summary(factor(males16[-missCountry16]))[-3]/as.numeric(length(males16[-missCountry16])-summary(factor(males16[-missCountry16]))[3])
+summary(factor(males15))[-3]/as.numeric(length(males15)-summary(factor(males15))[3])
+summary(factor(males14))[-3]/as.numeric(length(males14)-summary(factor(males14))[3])
+```
+
+Missingness in Gender is very problematic for 2018 and 2017. Otherwise, we can continue with complete case for 2014-2016. Or, if we come up with an imputation method for 2017-18, then might as well apply it to 2014-2016.
+
+(Imputation on Binary Variables )[https://niasra.uow.edu.au/content/groups/public/@web/@inf/@math/documents/mm/uow228467.pdf]  
+See slides 15 specifically; alludes to using logistic regression to impute for missing values in gender.
+
+
+Investigate missingness levels in Salary for full-time employed developers.
+Investigate if part-time employed developer salary to see if we can compare it with full-time employed developers.
+
+## Employment
+
+Survey in 2014 does not have a question that separates developers based on employment. So, we will continue analysis on 2015-2018.
+
+```{r echo=FALSE}
+# EMPLOYMENT
+summary(data18$Employment)
+summary(data17$EmploymentStatus)
+summary(factor(data16$employment_status))
+summary(factor(data15$`Employment Status`))
+
+# summary(factor(data14$`Including bonus, what is your annual compensation in USD?`)) 
+# the problem with data14 is that we cannot separate those employed full-time and part-time
+```
+
+```{r}
+# proportions of full-time employed
+as.numeric(summary(data18$Employment)[1])/nrow(data18)
+as.numeric(summary(data17$EmploymentStatus)[1])/nrow(data17)
+as.numeric(summary(factor(data16$employment_status))[1])/nrow(data16)
+as.numeric(summary(factor(data15$`Employment Status`))[1])/nrow(data15)
+```
+
+```{r}
+# separate the dataset to only those employed full-time
+subdata18 <- data18 %>% filter(Employment == "Employed full-time")
+subdata17 <- data17 %>% filter(EmploymentStatus == "Employed full-time")
+subdata16 <- data16 %>% filter(employment_status == "Employed full-time")
+subdata15 <- data15 %>% filter(`Employment Status` == "Employed full-time")
+```
+
+```{r}
+# recode gender in subset data
+temp <- as.character(subdata18$Gender)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("gender",temp) ] <- 0
+subdata18$Gender <- as.numeric(temp)
+
+temp <- as.character(subdata17$Gender)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("ender",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+subdata17$Gender <- as.numeric(temp)
+
+temp <- as.character(subdata16$gender)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+# Make prefer not to disclose as NA
+temp[ grep("Prefer not to disclose",temp) ] <- NA
+subdata16$gender <- as.numeric(temp)
+
+temp <- as.character(subdata15$Gender)
+temp[ which(temp == "Male") ] <- 1
+temp[ grep("Female",temp) ] <- 0
+temp[ grep("Other",temp) ] <- 0
+# Make prefer not to disclose as NA
+temp[ grep("Prefer not to disclose",temp) ] <- NA
+subdata15$Gender <- as.numeric(temp)
+
+rm(temp)
+```
+
+
+```{r}
+# with new subsets check proportions of gender
+as.numeric(summary(factor(subdata18$Gender)))/nrow(subdata18)
+as.numeric(summary(factor(subdata17$Gender)))/nrow(subdata17)
+as.numeric(summary(factor(subdata16$gender)))/nrow(subdata16)
+as.numeric(summary(factor(subdata15$Gender)))/nrow(subdata15)
+```
+
+```{r}
+# proportion of genders without NA
+as.numeric(summary(factor(subdata18$Gender))[-3])/(nrow(subdata18)-sum(is.na(subdata18$Gender)))
+as.numeric(summary(factor(subdata17$Gender))[-3])/(nrow(subdata17)-sum(is.na(subdata17$Gender)))
+as.numeric(summary(factor(subdata16$gender))[-3])/(nrow(subdata16)-sum(is.na(subdata16$gender)))
+as.numeric(summary(factor(subdata15$Gender))[-3])/(nrow(subdata15)-sum(is.na(subdata15$Gender)))
+```
+
+```{r}
+# proportion of salary missing in original dataset
+sum(is.na(data18$Salary))/nrow(data18)
+sum(is.na(data17$Salary))/nrow(data17)
+sum(is.na(data16$salary_midpoint))/nrow(data16)
+
+# 2015 some full-time employed respondents said that they were unemployed or 'Rather not say' for compensation; count these as NA
+temp15 <- as.character(data15$`Compensation: midpoint`)
+temp15[ grep("Unemployed",temp) ] <- NA
+temp15[ grep("Rather not say",temp) ] <- NA
+temp15 <- as.numeric(temp15)
+
+sum(is.na(temp15))/nrow(subdata15)
+
+# proportion of salary missing
+sum(is.na(subdata18$Salary))/nrow(subdata18)
+sum(is.na(subdata17$Salary))/nrow(subdata17)
+sum(is.na(subdata16$salary_midpoint))/nrow(subdata16)
+
+# 2015 some full-time employed respondents said that they were unemployed or 'Rather not say' for compensation; count these as NA
+temp <- as.character(subdata15$`Compensation: midpoint`)
+temp[ grep("Unemployed",temp) ] <- NA
+temp[ grep("Rather not say",temp) ] <- NA
+subdata15$`Compensation: midpoint`<- as.numeric(temp)
+
+sum(is.na(subdata15$`Compensation: midpoint`))/nrow(subdata15)
+```
+
+Country Missingness for FT Employed Developers
+
+```{r}
+which(is.na(subdata18$Country))
+which(is.na(subdata17$Country))
+which(is.na(subdata15$Country))
+# No missingness for 2018, 2017, 2015
+
+missCountry16 <- which(is.na(subdata16$country))
+# 133 FT employed devs missing Country input
+# only about 0.4%...we can continue with complete case 
+```
+
+Finding the Common Countries Among 2014-2018 Surveys
+
+```{r}
+temp <- intersect(data18$Country, data17$Country)
+temp <- intersect(temp, data16$country)
+temp <- intersect(temp, data15$Country)
+temp <- intersect(temp, data14$`What Country do you live in?`)
+
+subdata18 <- data18 %>% filter(str_detect(Country, paste(temp, collapse="|")))
+subdata17 <- data17 %>% filter(str_detect(Country, paste(temp, collapse="|")))
+subdata16 <- data16 %>% filter(str_detect(country, paste(temp, collapse="|")))
+subdata15 <- data15 %>% filter(str_detect(Country, paste(temp, collapse="|")))
+subdata14 <- data14 %>% filter(str_detect(`What Country do you live in?`, paste(temp, collapse="|")))
+
+# 2017 ended up with extra countries.
+extra <- c("British Indian Ocean Territory", "Netherlands Antilles", "S. Georgia & S. Sandwich Isls.")
+subdata17 <- subdata17 %>% filter(!str_detect(Country, paste(extra, collapse="|")))
+```
+
+
+
+
+
+
+

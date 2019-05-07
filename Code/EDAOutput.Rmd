@@ -1,0 +1,119 @@
+---
+title: "EDAOutput"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(knitr)
+library(kableExtra)
+```
+
+
+## Summary Notes:  
+1. Country has the least amount of missingness (at most 0.9%), which tells us that we can use country as our individuals.  
+2. Gender can be successfully recoded as binary for 2014-2018. However, missingness is as bad as 35% for 2017 and 2018. We would need to do some sort of fancy imputation method (Inverse Probability weighting or logistic regression). **More research required**.   
+3. When subsetting the data by FT employed developers, missingness in Gender is a bit better (as bad as 32%). However, we would need to eliminate 2014 dataset because they don't have a question that separates by Employment Status.  
+4. Missingness in Salary is the terrible for original dataset (as bad as 80%), so we could not use it as a covariate. However, if we adjust for Employment Status, there are good decreases in missingness. But, it's still a terrible situation (as bad as 66%). If our imputation methods that we research work for missingness as bad as 66%, then we can use Salary. 
+
+
+## Type of Responses 
+
+<style> table tr th,td{text-align:left;}</style>
+<div style="padding-right:40%;">
+| Year | Options  | Type  |
+|--|:---:|--:|
+| 2018 | Male, Female <br> Transgender, gender non-conforming, <br> genderqueer, Non-binary <br> NA | Mark all that apply |
+| 2017 | Male, Female <br> Transgender, Gender non-conforming <br> Other, NA  | Mark all that apply |
+| 2016 | Male, Female <br> Other <br> Prefer not to disclose, NA  | Choose one |
+| 2015 | Male, Female <br> Other <br> Prefer not to disclose, NA  | Choose one |
+| 2014 | Male, Female <br> Prefer not to disclose, NA  | Choose one |
+</div>
+
+## Data Reduction / Derived Variables
+
+__Recoding Algorithm__  
+1. Any answer indicating 'Male' exclusively was coded as '1'. <br>
+2. 'Prefer not to disclose' was changed to 'NA'. <br>
+3. All other responses were coded as '0'. <br>
+
+For Country variables, it appears that we can continue with complete cases. There is only missingness in 2016 (n=502, 0.9%) and 2018 (n=412, 0.4%). The missingness is clearly a very small fraction of the entire respective datasets. 
+
+```{r echo=FALSE}
+table <- round(dget("tableProps"),2)
+kable <- kable(table, format="latex", booktabs=T, align='c', caption = "Table of Proportions (%) of Gender for 219 Potential Countries Across Time")
+kable_styling(kable, latex_options = c("striped", "hold_position"), full_width = F)
+```
+
+
+<!-- <div style="padding-right:10%;"> -->
+<!-- | Year | Category & Count  | Percent of Sample  | Percent w/o NA in Country | Percent w/o NA in Males | Percent w/o NA in Country & Males |  -->
+<!-- |--|:--:|:--:|:--:|:---:|----:| -->
+<!-- | 2018 | Male : 59458 <br> Other : 5011 <br> NA : 34386 | Male : 60.1 <br> Other : 5.1 <br> NA : 34.8 | Male : 60.4 <br> Other : 5.1 <br> NA : 34.5 | Male : 92.2 <br> Other : 7.8 | *no change b/c all NA in Country are NA in Males* | -->
+<!-- | 2017 | Male : 31589 <br> Other : 3458 <br> NA : 16345 | Male : 61.5 <br> Other : 6.7 <br> NA : 31.8 | *no change b/c no NA in Country* | Male : 92.2 <br> Other : 7.8 | Male : 90.1 <br> Other : 9.9 | -->
+<!-- | 2016 | Male : 51388 <br> Other : 3476 <br> NA : 1166 | Male : 91.7 <br> Other : 6.2 <br> NA : 2.1 | Male : 92.0 <br> Other : 6.2 <br> NA : 1.8 | Male : 93.7 <br> Other : 6.3 | *no change* | -->
+<!-- | 2015 | Male : 23699 <br> Other : 1608 <br> NA : 779 | Male : 90.8 <br> Other : 6.2 <br> NA : 3.0 | *no change b/c no NA in Country* | Male : 93.6 <br> Other : 6.4 | *no change* | -->
+<!-- | 2014 | Male : 6864 <br> Other : 352 <br> NA : 427 | Male : 89.8 <br> Other : 4.6 <br> NA : 5.6 | *no change b/c no NA in Country* | Male : 95.1 <br> Other : 4.9 | *no change* | -->
+<!-- </div> -->
+
+## Solutions to Missingness
+
+Missingness in Gender is very problematic for 2018 and 2017. Otherwise, we can continue with complete case for 2014-2016. Or, if we come up with an imputation method for 2017-18, then might as well apply it to 2014-2016.
+
+(Imputation on Binary Variables )[https://niasra.uow.edu.au/content/groups/public/@web/@inf/@math/documents/mm/uow228467.pdf]  
+See slides 15 specifically; alludes to using logistic regression to impute for missing values in gender.
+Jaylen also recommend Inverse Probability Weighting; there's an R package called ipw.
+
+
+<!-- ## Employment -->
+
+<!-- Survey in 2014 does not have a question that separates developers based on employment. So, we will continue analysis on 2015-2018 full-time (FT) employed developers only. -->
+
+<!-- <div style="padding-right:50%;"> -->
+<!-- | Year | Count of FT Employed | Proportion of FT Employed  |  -->
+<!-- |--|:--:|--:| -->
+<!-- | 2018 | 70495 | 71.3 | -->
+<!-- | 2017 | 36148 | 70.3 | -->
+<!-- | 2016 | 33593 | 60.0 | -->
+<!-- | 2015 | 14126 | 54.2 | -->
+<!-- </div> -->
+
+<!-- <style> table tr th,td{text-align:left;}</style> -->
+<!-- <div style="padding-right:40%;"> -->
+<!-- | Year | Proportion of Salary Missing for Original Dataset | Proportion of Salary Missing for FT Employed | -->
+<!-- |--|:--:|--:| -->
+<!-- | 2018 | 48.8 | 41.5 |  -->
+<!-- | 2017 | 74.9 | 65.6 |  -->
+<!-- | 2016 | 25.5 | 9.2 |  -->
+<!-- | 2015 | 79.5 | 18.8 |  -->
+<!-- </div> -->
+
+<!-- Good news is that country is not missing for FT employed developers in 2018, 2017, and 2015. In 2016, country is missing for 0.4% of FT employed developers. We could continue with complete case. -->
+
+<!-- After creating subsets of the original data based on only full-time employed, we recoded gender just like before. -->
+
+<!-- <div style="padding-right:10%;"> -->
+<!-- | Year | Category & Count  | Percent of Sample | Percent w/o NA in Males |   -->
+<!-- |--|:--:|:--:|--:| -->
+<!-- | subdata18 | Male : 44508 <br> Non-male : 3671 <br> NA : 22316 | Male : 63.1 <br> Non-male : 5.2 <br> NA : 31.7 | Male : 92.3 <br> Non-male : 7.6 |  -->
+<!-- | subdata17 | Male : 22940 <br> Non-male : 2498 <br> NA : 10710 | Male : 63.5 <br> Non-male : 6.9 <br> NA : 29.6 | Male : 90.2 <br> Non-male : 9.8 |  -->
+<!-- | subdata16 | Male : 31179 <br> Non-male : 1989 <br> NA : 425 | Male : 92.8 <br> Non-male : 5.9 <br> NA : 1.3 | Male : 94.0 <br> Non-male : 6.0 |  -->
+<!-- | subdata15 | Male : 13132 <br> Non-male : 779 <br> NA : 215 | Male : 92.9 <br> Non-male : 5.5 <br> NA : 1.5 | Male : 94.4 <br> Non-male : 5.6 |  -->
+<!-- </div> -->
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
